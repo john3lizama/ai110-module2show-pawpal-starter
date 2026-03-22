@@ -71,6 +71,8 @@ classDiagram
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
 
+Yes, the design changed during implementation. In the initial UML, `Owner` had a `get_schedule()` method that was meant to return the full plan for the day. However, when building the skeleton, it became clear that `Scheduler` was already responsible for generating and organizing the schedule — so both classes were doing the same job. To fix this, the responsibilities were split: `Owner.get_schedule()` was kept as a simple data aggregator that flattens all tasks across all pets into one list, while `Scheduler.generate_schedule()` handles the actual ordering and prioritization logic. This separation follows the Single Responsibility Principle — each class has one clear job rather than sharing overlapping behavior.
+
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
