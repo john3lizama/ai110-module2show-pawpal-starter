@@ -41,3 +41,15 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+## Smarter Scheduling
+
+Beyond the core `generate_schedule()` logic, the `Scheduler` class includes four additional features:
+
+**Sorting by time** — `sort_tasks_by_time(tasks)` orders any task list chronologically. It parses each `"HH:MM"` string into an integer tuple `(hours, minutes)` so the comparison is always numerically correct. Tasks with no scheduled time are placed at the end.
+
+**Filtering** — `filter_tasks(tasks, status, pet_name)` narrows a task list by completion status (e.g. `"pending"`, `"complete"`), by pet name, or both at once. Either argument can be omitted to skip that filter.
+
+**Auto-recurrence** — `complete_task(task_title)` marks a task complete and, if its frequency is `"daily"` or `"weekly"`, automatically creates the next occurrence with a `due_date` of today + 1 day or today + 7 days respectively. The new task is added directly to the same pet's task list.
+
+**Conflict detection** — `detect_conflicts()` scans every pending task across all pets and flags any time slot where two or more tasks share the same `scheduled_time`. It returns a list of plain warning strings rather than raising an exception, so the rest of the program keeps running.

@@ -84,8 +84,11 @@ Yes, the design changed during implementation. In the initial UML, `Owner` had a
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+`generate_schedule()` uses a **greedy first-fit** strategy: tasks are sorted by priority and duration, then each one is assigned to the earliest availability window it fits in — no backtracking, no rearranging.
+
+The tradeoff is **speed vs. optimality**. A greedy pass runs in O(tasks × windows), which is fast and easy to follow. The cost is that it can leave gaps a smarter algorithm would fill. For example, if a 45-minute HIGH priority task doesn't fit in the morning window (only 30 minutes left), it gets pushed to the next window — even if swapping it with two shorter LOW priority tasks would have made everything fit. The schedule produced is *good*, not *optimal*.
+
+This is a reasonable tradeoff for a pet care app because the number of tasks and windows is always small (a typical day might have 5–10 tasks across 3 time windows). The performance difference between greedy and an exhaustive search is irrelevant at that scale, and the simpler algorithm is much easier to debug and explain to a user. If the app scaled to a veterinary clinic scheduling dozens of appointments, a more sophisticated algorithm (e.g., dynamic programming or constraint satisfaction) would be worth the added complexity.
 
 ---
 

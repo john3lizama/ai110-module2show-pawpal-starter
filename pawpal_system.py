@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 from enum import Enum
+from datetime import date, datetime, timedelta
 
 
 class Priority(Enum):
@@ -17,6 +18,7 @@ class Task:
     frequency: str = "daily"        # "daily", "weekly", "as-needed"
     status: str = "pending"         # "pending", "complete", "cancelled"
     scheduled_time: Optional[str] = None  # "HH:MM" format
+    due_date: Optional[str] = None        # "YYYY-MM-DD" format
 
     def mark_complete(self) -> None:
         """Mark this task as complete."""
@@ -109,9 +111,10 @@ class Scheduler:
                     task.scheduled_time = start_time
 
                     # Advance the window's start time and shrink its remaining capacity
-                    h, m = map(int, start_time.split(":"))
-                    new_total = h * 60 + m + task.duration_minutes
-                    new_start = f"{new_total // 60:02d}:{new_total % 60:02d}"
+                    new_start = (
+                        datetime.strptime(start_time, "%H:%M")
+                        + timedelta(minutes=task.duration_minutes)
+                    ).strftime("%H:%M")
                     windows[i] = (new_start, remaining_minutes - task.duration_minutes)
 
                     self.scheduled_tasks.append(task)
@@ -143,6 +146,109 @@ class Scheduler:
                         t for t in self.scheduled_tasks if t.title != task_title
                     ]
                     return
+
+    def complete_task(self, task_title: str) -> Optional[Task]:
+        """
+        Mark a task complete. If its frequency is 'daily' or 'weekly', automatically
+        create and register the next occurrence on the same pet.
+        Returns the new Task if one was created, otherwise None.
+        """
+        _RECURRENCE_DAYS = {"daily": 1, "weekly": 7}
+
+        for pet in self.owner.pets:
+            for task in pet.tasks:
+                if task.title == task_title and task.status == "pending":
+                    task.mark_complete()
+
+                    delta_days = _RECURRENCE_DAYS.get(task.frequency)
+                    if delta_days is None:
+                        return None
+
+                    next_date = date.today() + timedelta(days=delta_days)
+                    next_task = Task(
+                        title=task.title,
+                        duration_minutes=task.duration_minutes,
+                        priority=task.priority,
+                        frequency=task.frequency,
+                        scheduled_time=task.scheduled_time,
+                        due_date=next_date.isoformat(),
+                    )
+                    pet.add_task(next_task)
+                    return next_task
+
+        return None
+
+    def detect_conflicts(self) -> list[str]:
+        """
+        Scan all pending tasks across every pet for scheduling conflicts.
+        A conflict is any time slot where two or more tasks share the same scheduled_time.
+        Returns a list of warning strings (one per conflicting slot) — never raises.
+        """
+        from collections import defaultdict
+
+        time_map: dict[str, list[tuple[str, Task]]] = defaultdict(list)
+        for pet in self.owner.pets:
+            for task in pet.tasks:
+                if task.status == "pending" and task.scheduled_time:
+                    time_map[task.scheduled_time].append((pet.name, task))
+
+        warnings = []
+        for slot, entries in sorted(time_map.items()):
+            if len(entries) > 1:
+                details = ", ".join(
+                    f"'{t.title}' ({pet})" for pet, t in entries
+                )
+                warnings.append(f"WARNING: Conflict at {slot} — {details}")
+
+        return warnings
+
+    def sort_tasks_by_time(self, tasks: list[Task]) -> list[Task]:
+        """
+        Return a new list of tasks sorted chronologically by scheduled_time.
+
+        Uses a lambda key that parses each "HH:MM" string into a (hours, minutes)
+        integer tuple so that string comparison never produces wrong order
+        (e.g. "9:00" < "10:00" fails lexicographically but works correctly as
+        (9, 0) < (10, 0)). Tasks with no scheduled_time are given a sentinel
+        value of (24, 0) so they always sort to the end of the list.
+
+        Args:
+            tasks: Any list of Task objects to sort.
+
+        Returns:
+            A new sorted list; the original list is not modified.
+        """
+        return sorted(
+            tasks,
+            key=lambda t: tuple(map(int, t.scheduled_time.split(":"))) if t.scheduled_time else (24, 0)
+        )
+
+    def filter_tasks(self, tasks: list[Task], status: str = None, pet_name: str = None) -> list[Task]:
+        """
+        Return a subset of tasks that match all supplied filter criteria.
+
+        Filters are applied in sequence and are cumulative — providing both
+        status and pet_name returns only tasks that satisfy both conditions.
+        Omitting a parameter (or passing None) skips that filter entirely,
+        so calling filter_tasks(tasks) with no extra args returns the full list.
+
+        Args:
+            tasks:    The list of Task objects to filter.
+            status:   If provided, keep only tasks whose status equals this
+                      string (e.g. "pending", "complete", "cancelled").
+            pet_name: If provided, keep only tasks belonging to the pet with
+                      this exact name. Uses _find_pet_for_task internally to
+                      resolve ownership.
+
+        Returns:
+            A new list containing only the tasks that passed every active filter.
+        """
+        result = tasks
+        if status is not None:
+            result = [t for t in result if t.status == status]
+        if pet_name is not None:
+            result = [t for t in result if self._find_pet_for_task(t) == pet_name]
+        return result
 
     def _find_pet_for_task(self, task: Task) -> str:
         """Resolve which pet a scheduled task belongs to."""
