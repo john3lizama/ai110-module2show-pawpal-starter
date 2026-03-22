@@ -53,3 +53,31 @@ Beyond the core `generate_schedule()` logic, the `Scheduler` class includes four
 **Auto-recurrence** — `complete_task(task_title)` marks a task complete and, if its frequency is `"daily"` or `"weekly"`, automatically creates the next occurrence with a `due_date` of today + 1 day or today + 7 days respectively. The new task is added directly to the same pet's task list.
 
 **Conflict detection** — `detect_conflicts()` scans every pending task across all pets and flags any time slot where two or more tasks share the same `scheduled_time`. It returns a list of plain warning strings rather than raising an exception, so the rest of the program keeps running.
+
+## Testing PawPal+
+
+### Running the tests
+
+```bash
+python -m pytest tests/test_pawpal.py -v
+```
+
+### What the tests cover
+
+The suite contains **63 tests** organized across five test classes:
+
+| Class | Tests | What it covers |
+|---|---|---|
+| `TestTask` | 11 | State transitions (`pending` → `complete` → `cancelled`), idempotent operations, zero/large durations |
+| `TestPet` | 9 | Adding/removing tasks, `get_pending_tasks()` filtering, independent task lists across pets |
+| `TestOwner` | 8 | Adding/removing pets, schedule aggregation across multiple pets |
+| `TestScheduler` | 12 | Priority sorting (HIGH → MEDIUM → LOW, shortest-first tie-break), schedule generation, window overflow, cancellation |
+| `TestSortingCorrectness` | 6 | Chronological ordering, numeric vs. lexicographic time comparison (`"09:00"` < `"10:00"`), `None` scheduled times, list immutability |
+| `TestRecurrenceLogic` | 8 | Daily (+1 day) and weekly (+7 day) due dates, property inheritance on new task, `as-needed` produces no recurrence, no duplicate tasks on repeated completion |
+| `TestConflictDetection` | 9 | Same-pet and cross-pet conflicts, three-way collisions in one warning, completed/unscheduled tasks excluded, empty owner |
+
+### Confidence Level
+
+★★★★☆ (4 / 5)
+
+The core scheduling loop, recurrence logic, conflict detection, and all documented edge cases are fully tested and passing. One star is held back because tasks can collide silently when two pets share a task title (the scheduler matches the first one found), and `generate_schedule()` silently skips tasks that exceed every availability window rather than surfacing a warning. Both are observable behaviors worth adding assertions for before shipping to production.
