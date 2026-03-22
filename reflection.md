@@ -7,6 +7,65 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+A user should be able to add a new pet with the required information.
+
+A user should be able to see their curated schedule that alligns with their availabilty.
+
+A user should be able to cancel appointments or rescedule an upcoming tasks if something comes up unexpectedly.
+
+**UML Class Diagram:**
+
+```mermaid
+classDiagram
+    class Owner {
+        +String name
+        +String email
+        +List~String~ availability
+        +List~Pet~ pets
+        +add_pet(pet: Pet) void
+        +remove_pet(pet_name: String) void
+        +get_schedule() List~Task~
+    }
+
+    class Pet {
+        +String name
+        +String species
+        +String breed
+        +int age
+        +List~Task~ tasks
+        +add_task(task: Task) void
+        +remove_task(task_title: String) void
+        +get_pending_tasks() List~Task~
+    }
+
+    class Task {
+        +String title
+        +int duration_minutes
+        +String priority
+        +String status
+        +String scheduled_time
+        +mark_complete() void
+        +reschedule(new_time: String) void
+        +cancel() void
+        +is_high_priority() bool
+    }
+
+    class Scheduler {
+        +Owner owner
+        +List~Task~ scheduled_tasks
+        +generate_schedule() List~Task~
+        +prioritize_tasks(tasks: List~Task~) List~Task~
+        +explain_plan() String
+        +cancel_task(task_title: String) void
+    }
+
+    Owner "1" --> "many" Pet : owns
+    Pet "1" --> "many" Task : has
+    Scheduler "1" --> "1" Owner : schedules for
+    Scheduler "1" --> "many" Task : organizes
+```
+
+
 **b. Design changes**
 
 - Did your design change during implementation?
