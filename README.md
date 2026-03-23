@@ -1,26 +1,42 @@
-# PawPal+ (Module 2 Project)
+# PawPal+ 🐾
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a Streamlit app that helps busy pet owners stay consistent with their pet's care routine. Enter your availability, add your pet and their tasks, and PawPal+ builds an optimized daily schedule — complete with conflict warnings, smart sorting, and automatic recurrence.
 
-## Scenario
+---
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+## Features
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
+### 1. Priority-Based Scheduling
+The scheduler uses a **greedy first-fit algorithm** to assign tasks to your available time windows. Tasks are ranked HIGH → MEDIUM → LOW priority first, then by shortest duration within each tier, ensuring the most important care happens first and your time is used efficiently.
 
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
+### 2. Sorting by Time
+All scheduled tasks are displayed in **chronological order** using a time-aware sort. Each `"HH:MM"` string is parsed into a numeric `(hours, minutes)` tuple before comparison, so `"9:00"` correctly sorts before `"10:00"` — something a plain string sort would get wrong. Tasks with no assigned time slot are placed at the end of the list.
 
-## What you will build
+### 3. Filtering
+The schedule view supports **live filtering** by status (`pending`, `complete`, `cancelled`) and by pet name. Filters are cumulative — selecting both a status and a pet returns only tasks that satisfy both conditions. Omitting either filter shows all matching tasks.
 
-Your final app should:
+### 4. Conflict Warnings
+After generating a schedule, PawPal+ automatically **scans all pending tasks** across every pet for time slot collisions. Any two tasks sharing the same `scheduled_time` are flagged with a visible warning banner. Warnings are surfaced in the UI and never crash the app — the rest of the schedule is always shown.
 
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+### 5. Daily & Weekly Recurrence
+Marking a task complete with a `daily` or `weekly` frequency **automatically creates the next occurrence**. The new task inherits the same title, duration, priority, and scheduled time, and is assigned a `due_date` of today + 1 day (daily) or today + 7 days (weekly). Tasks marked `as-needed` are completed without recurrence.
+
+### 6. Schedule Metrics
+The schedule view displays a **live metrics row** showing total tasks, pending count, completed count, and high-priority count — giving an at-a-glance summary before diving into the full table.
+
+### 7. Task Management
+- Add tasks with a title, duration, priority, and frequency
+- Duplicate task names on the same pet are blocked with a warning
+- Remove pending tasks from a pet's list at any time
+- Cancel scheduled tasks directly from the schedule view
+
+---
+
+## 📸 Demo
+
+<a href="/course_images/ai110/pawpal_demo.png" target="_blank"><img src='/course_images/ai110/pawpal_demo.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
+---
 
 ## Getting started
 
@@ -41,18 +57,6 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
-
-## Smarter Scheduling
-
-Beyond the core `generate_schedule()` logic, the `Scheduler` class includes four additional features:
-
-**Sorting by time** — `sort_tasks_by_time(tasks)` orders any task list chronologically. It parses each `"HH:MM"` string into an integer tuple `(hours, minutes)` so the comparison is always numerically correct. Tasks with no scheduled time are placed at the end.
-
-**Filtering** — `filter_tasks(tasks, status, pet_name)` narrows a task list by completion status (e.g. `"pending"`, `"complete"`), by pet name, or both at once. Either argument can be omitted to skip that filter.
-
-**Auto-recurrence** — `complete_task(task_title)` marks a task complete and, if its frequency is `"daily"` or `"weekly"`, automatically creates the next occurrence with a `due_date` of today + 1 day or today + 7 days respectively. The new task is added directly to the same pet's task list.
-
-**Conflict detection** — `detect_conflicts()` scans every pending task across all pets and flags any time slot where two or more tasks share the same `scheduled_time`. It returns a list of plain warning strings rather than raising an exception, so the rest of the program keeps running.
 
 ## Testing PawPal+
 

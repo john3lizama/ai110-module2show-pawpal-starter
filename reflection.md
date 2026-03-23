@@ -17,10 +17,17 @@ A user should be able to cancel appointments or rescedule an upcoming tasks if s
 
 ```mermaid
 classDiagram
+    class Priority {
+        <<enumeration>>
+        LOW = 1
+        MEDIUM = 2
+        HIGH = 3
+    }
+
     class Owner {
         +String name
         +String email
-        +List~String~ availability
+        +List~Tuple~ availability
         +List~Pet~ pets
         +add_pet(pet: Pet) void
         +remove_pet(pet_name: String) void
@@ -41,9 +48,11 @@ classDiagram
     class Task {
         +String title
         +int duration_minutes
-        +String priority
+        +Priority priority
+        +String frequency
         +String status
         +String scheduled_time
+        +String due_date
         +mark_complete() void
         +reschedule(new_time: String) void
         +cancel() void
@@ -57,12 +66,18 @@ classDiagram
         +prioritize_tasks(tasks: List~Task~) List~Task~
         +explain_plan() String
         +cancel_task(task_title: String) void
+        +complete_task(task_title: String) Task
+        +detect_conflicts() List~String~
+        +sort_tasks_by_time(tasks: List~Task~) List~Task~
+        +filter_tasks(tasks: List~Task~, status: String, pet_name: String) List~Task~
+        -_find_pet_for_task(task: Task) String
     }
 
     Owner "1" --> "many" Pet : owns
     Pet "1" --> "many" Task : has
     Scheduler "1" --> "1" Owner : schedules for
     Scheduler "1" --> "many" Task : organizes
+    Task --> Priority : uses
 ```
 
 
